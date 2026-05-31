@@ -4,6 +4,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+// command
+#define DC_C 0
+// data
+#define DC_D 1
+
 typedef uint8_t _u8;
 typedef int8_t _i8;
 typedef uint16_t _u16;

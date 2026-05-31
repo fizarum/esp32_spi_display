@@ -16,6 +16,13 @@ static void buffer_set_u16(_u8* buff, const _u16 value) {
   buff[1] = value & 0xff;
 }
 
+static void buffer_set_2u16(_u8* buff, const _u16 first, const _u16 second) {
+  buff[0] = (first >> 8) & 0xff;
+  buff[1] = first & 0xff;
+  buff[2] = (second >> 8) & 0xff;
+  buff[3] = second & 0xff;
+}
+
 /**
  * set array of _u16 into _u8 buffer,
  * make sure that buffer length x2 times bigger than array's size

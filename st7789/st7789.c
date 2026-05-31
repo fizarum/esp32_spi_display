@@ -33,6 +33,9 @@ static _u16 _x2;
 static _u16 _y1;
 static _u16 _y2;
 
+static void display_select_region(spi_display_t* dev, _u16 l, _u16 t, _u16 r,
+                                  _u16 b);
+
 void display_init(spi_display_t* dev) {
   dev->transmit_command(dev->spi_handle, dev->dc, SWRESET);
   vTaskDelay(_150);
@@ -67,28 +70,6 @@ void display_init(spi_display_t* dev) {
   vTaskDelay(_255);
 
   dev->lighten(dev->bl, 100);
-}
-
-/// @brief select region including points provided in€ arguments
-/// so if l = 20 and r = 30, then length (r - l) is 11 (because 30th pixel also
-/// included)
-void display_select_region(spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b) {
-  dev->transmit_command(dev->spi_handle, dev->dc, CASET);
-  buffer[0] = (l >> 8) & 0xff;
-  buffer[1] = l & 0xff;
-  buffer[2] = (r >> 8) & 0xff;
-  buffer[3] = r & 0xff;
-
-  dev->transmit_data(dev->spi_handle, dev->dc, buffer, 4);
-
-  dev->transmit_command(dev->spi_handle, dev->dc, RASET);
-  buffer[0] = (t >> 8) & 0xff;
-  buffer[1] = t & 0xff;
-  buffer[2] = (b >> 8) & 0xff;
-  buffer[3] = b & 0xff;
-  dev->transmit_data(dev->spi_handle, dev->dc, buffer, 4);
-
-  dev->transmit_command(dev->spi_handle, dev->dc, RAMWR);
 }
 
 void display_draw_pixel(spi_display_t* dev, _u16 x, _u16 y, _u16 color) {
@@ -180,17 +161,24 @@ void display_wakeup(spi_display_t* dev) {
   vTaskDelay(pdMS_TO_TICKS(130));
 }
 
-// Backlight ON/OFF
-void display_set_backlight(spi_display_t* dev, const bool on) {
-  if (dev->bl < 0) {
-    return;
-  }
-
-  dev->lighten(dev->bl, on ? 100 : 0);
-}
-
 // Display inversion on/off
 bool display_set_inversion(spi_display_t* dev, const bool inversion) {
   return dev->transmit_command(dev->spi_handle, dev->dc,
                                inversion ? INVON : INVOFF);
+}
+
+/// @brief select region including points provided in€ arguments
+/// so if l = 20 and r = 30, then length (r - l) is 11 (because 30th pixel also
+/// included)
+void display_select_region(spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b) {
+  dev->transmit_command(dev->spi_handle, dev->dc, CASET);
+  buffer_set_2u16(buffer, l, r);
+
+  dev->transmit_data(dev->spi_handle, dev->dc, buffer, 4);
+
+  dev->transmit_command(dev->spi_handle, dev->dc, RASET);
+  buffer_set_2u16(buffer, t, b);
+  dev->transmit_data(dev->spi_handle, dev->dc, buffer, 4);
+
+  dev->transmit_command(dev->spi_handle, dev->dc, RAMWR);
 }
