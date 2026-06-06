@@ -52,12 +52,15 @@ void app_main() {
 
   bool added = display_add(&dev1, CS1, DC_GPIO, RESET_GPIO, -1);
   assert(added == true);
+  display_init(&dev1);
 
   added = display_add(&dev2, CS2, DC_GPIO, RESET_GPIO, -1);
   assert(added == true);
+  display_init(&dev2);
 
   added = display_add(&dev3, CS3, DC_GPIO, RESET_GPIO, -1);
   assert(added == true);
+  display_init(&dev3);
 
   test1_display(&dev1);
   test2_display(&dev2);
