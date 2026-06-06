@@ -78,7 +78,7 @@ void display_init(spi_display_t* dev) {
 
   dev->transmit_command(dev->spi_handle, dev->dc, DISPON);
 
-  // assigning drawing API here
+  // assigning drawing API
   dev->select_region = display_select_region;
   dev->draw_pixel = display_draw_pixel;
   dev->draw_pixels = display_draw_pixels;
