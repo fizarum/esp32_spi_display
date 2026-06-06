@@ -22,6 +22,10 @@
 
 #define BUFFER_SIZE 1024
 
+// check is bit set, starting from most significant bit
+// 8-bit version
+#define IS_BIT_SET8(source, position) (source & (0x80 >> position))
+
 static TickType_t _10 = pdMS_TO_TICKS(10);
 static TickType_t _150 = pdMS_TO_TICKS(150);
 static TickType_t _255 = pdMS_TO_TICKS(255);
@@ -33,8 +37,14 @@ static _u16 _x2;
 static _u16 _y1;
 static _u16 _y2;
 
-static void display_select_region(spi_display_t* dev, _u16 l, _u16 t, _u16 r,
-                                  _u16 b);
+static void display_select_region(const spi_display_t* dev, _u16 l, _u16 t,
+                                  _u16 r, _u16 b);
+
+static void display_draw_pixel(const spi_display_t* dev, _u16 x, _u16 y,
+                               _u16 color);
+static void display_draw_pixels(const spi_display_t* dev, _u16 l, _u16 t,
+                                _u16 r, _u16 b, const _u16* colors,
+                                size_t size);
 
 void display_init(spi_display_t* dev) {
   dev->transmit_command(dev->spi_handle, dev->dc, SWRESET);
@@ -67,12 +77,34 @@ void display_init(spi_display_t* dev) {
   vTaskDelay(_10);
 
   dev->transmit_command(dev->spi_handle, dev->dc, DISPON);
-  vTaskDelay(_255);
 
+  // assigning drawing API here
+  dev->select_region = display_select_region;
+  dev->draw_pixel = display_draw_pixel;
+  dev->draw_pixels = display_draw_pixels;
+
+  vTaskDelay(_150);
   dev->lighten(dev->bl, 100);
 }
 
-void display_draw_pixel(spi_display_t* dev, _u16 x, _u16 y, _u16 color) {
+/// @brief select region including points provided in€ arguments
+/// so if l = 20 and r = 30, then length (r - l) is 11 (because 30th pixel also
+/// included)
+void display_select_region(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
+                           _u16 b) {
+  dev->transmit_command(dev->spi_handle, dev->dc, CASET);
+  buffer_set_2u16(buffer, l, r);
+
+  dev->transmit_data(dev->spi_handle, dev->dc, buffer, 4);
+
+  dev->transmit_command(dev->spi_handle, dev->dc, RASET);
+  buffer_set_2u16(buffer, t, b);
+  dev->transmit_data(dev->spi_handle, dev->dc, buffer, 4);
+
+  dev->transmit_command(dev->spi_handle, dev->dc, RAMWR);
+}
+
+void display_draw_pixel(const spi_display_t* dev, _u16 x, _u16 y, _u16 color) {
   _x1 = x + dev->offset_x;
   _x2 = x + dev->offset_x;
   _y1 = y + dev->offset_y;
@@ -84,8 +116,9 @@ void display_draw_pixel(spi_display_t* dev, _u16 x, _u16 y, _u16 color) {
   dev->transmit_data(dev->spi_handle, dev->dc, buffer, 2);
 }
 
-void display_draw_pixels(spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
-                         _u16* colors, size_t size) {
+// TODO: make colors argument as _u8*
+void display_draw_pixels(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
+                         _u16 b, const _u16* colors, size_t size) {
   if (size >= BUFFER_SIZE / 2) {
     return;
   }
@@ -109,40 +142,11 @@ void display_draw_pixels(spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
   display_select_region(dev, _x1, _y1, _x2 - 1, _y2 - 1);
 
   _u16 len = _y2 - _y1;
+
   buffer_set_u16_array(buffer, colors, size);
   for (_u16 x = _x1; x < _x2; x++) {
     dev->transmit_data(dev->spi_handle, dev->dc, buffer, len * 2);
   }
-}
-
-void display_fill_rect(spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
-                       _u16 color) {
-  if (l >= dev->width) return;
-  if (r > dev->width) r = dev->width;
-  if (t >= dev->height) return;
-  if (b > dev->height) b = dev->height;
-
-  _x1 = l + dev->offset_x;
-  _x2 = r + dev->offset_x;
-  _y1 = t + dev->offset_y;
-  _y2 = b + dev->offset_y;
-
-  display_select_region(dev, _x1, _y1, _x2 - 1, _y2 - 1);
-
-  _u16 lines_count = _y2 - _y1;
-  _u16 line_len = _x2 - _x1;
-
-  // first fill one line and put it into buffer
-  buffer_fill_u16(buffer, color, line_len);
-
-  // now fill lines one by one to display memory
-  for (_u16 line_index = 0; line_index < lines_count; line_index++) {
-    dev->transmit_data(dev->spi_handle, dev->dc, buffer, line_len * 2);
-  }
-}
-
-void display_clear(spi_display_t* dev, _u16 color) {
-  display_fill_rect(dev, 0, 0, dev->width, dev->height, color);
 }
 
 void display_set_on_off(spi_display_t* dev, const bool on) {
@@ -165,20 +169,4 @@ void display_wakeup(spi_display_t* dev) {
 bool display_set_inversion(spi_display_t* dev, const bool inversion) {
   return dev->transmit_command(dev->spi_handle, dev->dc,
                                inversion ? INVON : INVOFF);
-}
-
-/// @brief select region including points provided in€ arguments
-/// so if l = 20 and r = 30, then length (r - l) is 11 (because 30th pixel also
-/// included)
-void display_select_region(spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b) {
-  dev->transmit_command(dev->spi_handle, dev->dc, CASET);
-  buffer_set_2u16(buffer, l, r);
-
-  dev->transmit_data(dev->spi_handle, dev->dc, buffer, 4);
-
-  dev->transmit_command(dev->spi_handle, dev->dc, RASET);
-  buffer_set_2u16(buffer, t, b);
-  dev->transmit_data(dev->spi_handle, dev->dc, buffer, 4);
-
-  dev->transmit_command(dev->spi_handle, dev->dc, RAMWR);
 }

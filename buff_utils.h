@@ -1,12 +1,10 @@
 #pragma once
-#include <stddef.h>
-#include <stdint.h>
 
-typedef uint8_t _u8;
-typedef int8_t _i8;
-typedef uint16_t _u16;
-typedef int16_t _i16;
-typedef uint32_t _u32;
+#include <types.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * set single _u16 value to _u8 buffer
@@ -57,3 +55,14 @@ static void buffer_fill_u16(_u8* buff, const _u16 value,
     buff[buff_index++] = value & 0xff;
   }
 }
+
+static void array_fill_u16(_u16* array, const _u16 value,
+                           const size_t repeat_times) {
+  for (size_t index = 0; index < repeat_times; index++) {
+    array[index] = value;
+  }
+}
+
+#ifdef __cplusplus
+}
+#endif
