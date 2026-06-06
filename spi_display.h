@@ -1,31 +1,23 @@
 #pragma once
 
 #include <driver/spi_master.h>
-#include <stdbool.h>
-#include <stddef.h>
+#include <types.h>
+
+#include "rotation.h"
 
 // command
 #define DC_C 0
 // data
 #define DC_D 1
 
-typedef uint8_t _u8;
-typedef int8_t _i8;
-typedef uint16_t _u16;
-typedef int16_t _i16;
-typedef uint32_t _u32;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
   MODE_RGB = 0x00,
   MODE_BGR = 0x08,
 } color_mode_t;
-
-typedef enum {
-  ANGLE_0,
-  ANGLE_90,
-  ANGLE_180,
-  ANGLE_270,
-} rotation_t;
 
 typedef enum {
   SCROLL_RIGHT = 1,
@@ -34,7 +26,14 @@ typedef enum {
   SCROLL_UP,
 } scroll_type_t;
 
-typedef struct {
+typedef struct spi_display_t spi_display_t;
+
+/**
+ * @brief interface describing API of low level spi based display device. Its
+ * used in driver specific implementation as abstraction of mcu specific
+ * implementation of spi.
+ */
+typedef struct spi_display_t {
   _u16 width;
   _u16 height;
 
@@ -83,4 +82,17 @@ typedef struct {
                         const _u8* data, const size_t length);
 
   bool (*lighten)(const _i8 bl, const _u8 percents);
+
+  // drawing api
+  void (*select_region)(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
+                        _u16 b);
+
+  void (*draw_pixel)(const spi_display_t* self, const _u16 x, const _u16 y,
+                     const _u16 color);
+  void (*draw_pixels)(const spi_display_t* self, _u16 l, _u16 t, _u16 r, _u16 b,
+                      const _u16* pixels, const size_t len);
 } spi_display_t;
+
+#ifdef __cplusplus
+}
+#endif

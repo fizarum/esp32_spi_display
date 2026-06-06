@@ -21,7 +21,7 @@ Then you can use rest of API.
 To initialize spi bus just call __display_init_spi()__ with `mosi`, `sclk` and `reset` gpio parameters. 
 
 ### 2. create & configure *spi_display_t* device
-Now we need to add a display as spi device. __display_create()__ adds new display and configure it for you. You can add multiple displays on same bus, but make sure you have provided correct `cs` gpio for each one.
+Now we need to add a display as spi device. __display_add()__ adds new display. To configure display, call __display_init()__. You can add multiple displays on same bus, but make sure you have provided correct `cs` gpio for each one.
 
 That's it!
 
@@ -30,6 +30,8 @@ That's it!
 #include <display.h>
 #include <palette.h>
 #include <st7789/st7789.h>
+
+#include "gfx.h"
 
 // display devices
 spi_display_t dev1;
@@ -48,13 +50,13 @@ void app_main() {
     return;
   }
 
-  bool added = display_create(&dev1, CS1, DC_GPIO, RESET_GPIO, -1);
+  bool added = display_add(&dev1, CS1, DC_GPIO, RESET_GPIO, -1);
   assert(added == true);
 
-  added = display_create(&dev2, CS2, DC_GPIO, RESET_GPIO, -1);
+  added = display_add(&dev2, CS2, DC_GPIO, RESET_GPIO, -1);
   assert(added == true);
 
-  added = display_create(&dev3, CS3, DC_GPIO, RESET_GPIO, -1);
+  added = display_add(&dev3, CS3, DC_GPIO, RESET_GPIO, -1);
   assert(added == true);
 
   test1_display(&dev1);
@@ -64,14 +66,14 @@ void app_main() {
 
 // test function implementations 
 void test1_display(spi_display_t* display) {
-  display_clear(display, COLOR_BLACK);
-  display_fill_rect(display, 50, 50, 60, 60, COLOR_RED);
-  display_draw_pixel(display, 40, 40, COLOR_WHITE);
+  gfx_clear(display, COLOR_BLACK);
+  gfx_fill_rect(display, 50, 50, 60, 60, COLOR_RED);
+  display->draw_pixel(display, 40, 40, COLOR_WHITE);
 }
 
 void test2_display(spi_display_t* display) {
-  display_clear(display, COLOR_BLACK);
-  display_fill_rect(display, 50, 50, 60, 55, COLOR_GREEN);
+  gfx_clear(display, COLOR_BLACK);
+  gfx_fill_rect(display, 30, 30, 40, 35, COLOR_GREEN);
 
   static _u16 colors[] = {
       COLOR_GREEN, COLOR_RED, COLOR_GREEN, COLOR_RED, COLOR_GREEN,
@@ -81,11 +83,11 @@ void test2_display(spi_display_t* display) {
       COLOR_GREEN, COLOR_RED, COLOR_GREEN, COLOR_RED, COLOR_GREEN,
   };
 
-  display_draw_pixels(display, 40, 40, 45, 45, colors, 25);
+  gfx_draw_pixels(display, 40, 40, 45, 45, colors, 25);
 }
 
 void test3_display(spi_display_t* display) {
-  display_clear(display, COLOR_BLACK);
-  display_fill_rect(display, 50, 50, 60, 60, COLOR_BLUE);
+  gfx_clear(display, COLOR_BLACK);
+  gfx_draw_line(display, 100, 100, 200, 200, COLOR_GREEN);
 }
 ```
