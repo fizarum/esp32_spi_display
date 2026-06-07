@@ -75,8 +75,6 @@ bool display_add(spi_display_t* dev, const _i8 cs, const _i8 dc,
   is_ok = display_configure(dev, DISPLAY_WIDTH, DISPLAY_HEIGHT,
                             DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y, ANGLE_0);
   assert(is_ok == true);
-  display_set_color_mode(dev, MODE_BGR);
-  assert(is_ok == true);
 
   return true;
 }
@@ -90,10 +88,6 @@ bool display_configure(spi_display_t* dev, const _u16 width, const _u16 height,
   dev->offset_y = offset_y;
   dev->rotation = rotation;
   dev->font_rotaion = rotation;
-}
-
-bool display_set_color_mode(spi_display_t* dev, const color_mode_t mode) {
-  dev->color_mode = mode;
 }
 
 // private part

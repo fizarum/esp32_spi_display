@@ -83,6 +83,8 @@ typedef struct spi_display_t {
 
   bool (*lighten)(const _i8 bl, const _u8 percents);
 
+  bool (*set_color_mode)(spi_display_t* self, const color_mode_t mode);
+
   // drawing api
   void (*select_region)(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
                         _u16 b);
