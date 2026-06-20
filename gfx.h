@@ -15,11 +15,14 @@ void gfx_draw_pixels(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
 // drawing api
 void gfx_clear(const spi_display_t* dev, const _u16 color);
 
+void gfx_draw_rect(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
+                   _u16 color);
+
 void gfx_fill_rect(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
                    _u16 color);
 
-void gfx_draw_rect(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
-                   _u16 color);
+void gfx_draw_rounded_rect(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
+                           _u16 b, _u16 radius, _u16 color);
 
 void gfx_draw_h_line(const spi_display_t* dev, const _u16 l, const _u16 t,
                      const _u16 length, const _u16 color);
@@ -29,6 +32,36 @@ void gfx_draw_v_line(const spi_display_t* dev, const _u16 l, const _u16 t,
 
 void gfx_draw_line(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
                    const _u16 color);
+
+/**
+ * @brief draw 1/4 part of circle, starting frop top position as 0, clockwise
+ * @param segment_mask looks like:
+ *                      @@@@@@@@@@@@@@
+                   @@@@@      @       @@@@@
+                @@@@          @           @@@@
+segment: 3    @@@             @              @@@    segment: 0
+            @@@@@       7     @   0           @@@@
+           @@   @@@           @            @@@@  @@
+          @       @@@@        @          @@@       @
+         @@          @@@      @       @@@@         @@
+        @@    6        @@@    @     @@@    1        @@
+        @                @@@  @  @@@@                @
+        @                  @@@@@@@                   @
+        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        @                 @@@@@ @@@                  @
+        @@     5        @@@   @   @@@      2        @@
+         @@          @@@@     @     @@@            @@
+          @        @@@        @       @@@          @
+           @@   @@@@          @         @@@@     @@
+            @@@@@      4      @  3         @@@ @@@
+segment: 2    @@@             @              @@@  segment: 1
+                @@@@          @           @@@@
+                   @@@@@      @       @@@@@
+                        @@@@@@@@@@@@@@
+ * */
+void gfx_draw_circle_segment(const spi_display_t* dev, const _u16 c_x,
+                             const _u16 c_y, const _u16 radius,
+                             const _u8 segment_mask, const _u16 color);
 
 void gfx_draw_circle(const spi_display_t* dev, const _u16 c_x, const _u16 c_y,
                      const _u16 radius, const _u16 color);
@@ -43,8 +76,7 @@ void gfx_draw_unclosed_circle(const spi_display_t* dev, const _u16 c_x,
                               const _u16 color);
 
 void gfx_draw_gauge(const spi_display_t* dev, const _u16 c_x, const _u16 c_y,
-                    const _u16 radius, const _u16 start_angle,
-                    const _u16 end_angle, const _u16 color);
+                    const _u16 radius, const _u16 color);
 
 /** @brief Draws part of gauge  */
 void gfx_draw_gauge_segment(const spi_display_t* dev, const _u16 c_x,

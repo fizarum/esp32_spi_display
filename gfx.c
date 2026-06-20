@@ -12,7 +12,7 @@
 // 8-bit version
 #define GFX_IS_BIT_SET8(source, position) (source & (0x80 >> position))
 #define BUFFER_SIZE 1024
-#define GAUGE_LINE_WIDTH 20
+#define GAUGE_LINE_WIDTH 16
 // tile size is 3x3
 #define TILE_COLORS_COUNT 9
 
@@ -43,6 +43,17 @@ void gfx_clear(const spi_display_t* dev, const _u16 color) {
   gfx_fill_rect(dev, 0, 0, dev->width, dev->height, color);
 }
 
+void gfx_draw_rect(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
+                   _u16 color) {
+  _u16 h_len = r - l;
+  _u16 v_len = b - t;
+  gfx_draw_h_line(dev, l, t, h_len, color);
+  gfx_draw_h_line(dev, l, b - 1, h_len, color);
+
+  gfx_draw_v_line(dev, l, t, v_len, color);
+  gfx_draw_v_line(dev, r, t, v_len, color);
+}
+
 // TODO: recheck if it can be moved to draw_pixels() instead
 void gfx_fill_rect(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
                    _u16 color) {
@@ -70,15 +81,26 @@ void gfx_fill_rect(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
   }
 }
 
-void gfx_draw_rect(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
-                   _u16 color) {
-  _u16 h_len = r - l;
-  _u16 v_len = b - t;
-  gfx_draw_h_line(dev, l, t, h_len, color);
-  gfx_draw_h_line(dev, l, b - 1, h_len, color);
+void gfx_draw_rounded_rect(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
+                           _u16 b, _u16 radius, _u16 color) {
+  _u16 h_len = r - l - (radius * 2);
+  _u16 v_len = b - t - (radius * 2);
+  // top & bottom
+  gfx_draw_h_line(dev, l + radius, t, h_len, color);
+  gfx_draw_h_line(dev, l + radius, b - 1, h_len, color);
+  // left & right
+  gfx_draw_v_line(dev, l, t + radius, v_len, color);
+  gfx_draw_v_line(dev, r, t + radius, v_len, color);
 
-  gfx_draw_v_line(dev, l, t, v_len, color);
-  gfx_draw_v_line(dev, r, t, v_len, color);
+  // rounded corners
+  // lt
+  gfx_draw_circle_segment(dev, l + radius, t + radius, radius, 3, color);
+  // rt
+  gfx_draw_circle_segment(dev, r - radius, t + radius, radius, 0, color);
+  // lb
+  gfx_draw_circle_segment(dev, l + radius, b - radius - 1, radius, 2, color);
+  // rb
+  gfx_draw_circle_segment(dev, r - radius, b - radius - 1, radius, 1, color);
 }
 
 void gfx_draw_h_line(const spi_display_t* dev, const _u16 l, const _u16 t,
@@ -118,6 +140,65 @@ void gfx_draw_line(const spi_display_t* dev, _u16 l, _u16 t, _u16 r, _u16 b,
   }
 }
 
+void gfx_draw_circle_segment(const spi_display_t* dev, const _u16 c_x,
+                             const _u16 c_y, const _u16 radius,
+                             const _u8 segment, const _u16 color) {
+  int f = 1 - radius;
+  int ddF_x = 0;
+  int ddF_y = -2 * radius;
+  int x = 0;
+  int y = radius;
+
+  if (segment == 0) {
+    dev->draw_pixel(dev, c_x, c_y - radius, color);
+    dev->draw_pixel(dev, c_x + radius, c_y, color);
+  }
+
+  if (segment == 1) {
+    dev->draw_pixel(dev, c_x + radius, c_y, color);
+    dev->draw_pixel(dev, c_x, c_y + radius, color);
+  }
+
+  if (segment == 2) {
+    dev->draw_pixel(dev, c_x, c_y + radius, color);
+    dev->draw_pixel(dev, c_x - radius, c_y, color);
+  }
+
+  if (segment == 3) {
+    dev->draw_pixel(dev, c_x - radius, c_y, color);
+    dev->draw_pixel(dev, c_x, c_y - radius, color);
+  }
+
+  while (x < y) {
+    if (f >= 0) {
+      y--;
+      ddF_y += 2;
+      f += ddF_y;
+    }
+    x++;
+    ddF_x += 2;
+    f += ddF_x + 1;
+
+    if (segment == 0) {
+      dev->draw_pixel(dev, c_x + x, c_y - y, color);  // 0 (segment group 0)
+      dev->draw_pixel(dev, c_x + y, c_y - x, color);  // 1 (segment group 0)
+    }
+    if (segment == 1) {
+      dev->draw_pixel(dev, c_x + y, c_y + x, color);  // 2 (segment group 1)
+      dev->draw_pixel(dev, c_x + x, c_y + y, color);  // 3 (segment group 1)
+    }
+
+    if (segment == 2) {
+      dev->draw_pixel(dev, c_x - x, c_y + y, color);  // 4 (segment group 2)
+      dev->draw_pixel(dev, c_x - y, c_y + x, color);  // 5 (segment group 2)
+    }
+    if (segment == 3) {
+      dev->draw_pixel(dev, c_x - x, c_y - y, color);  // 7 (segment group 3)
+      dev->draw_pixel(dev, c_x - y, c_y - x, color);  // 6 (segment group 3)
+    }
+  }
+}
+
 // Bresenham's circle algorithm
 void gfx_draw_circle(const spi_display_t* dev, const _u16 c_x, const _u16 c_y,
                      const _u16 radius, const _u16 color) {
@@ -141,14 +222,14 @@ void gfx_draw_circle(const spi_display_t* dev, const _u16 c_x, const _u16 c_y,
     x++;
     ddF_x += 2;
     f += ddF_x + 1;
-    dev->draw_pixel(dev, c_x + x, c_y + y, color);
-    dev->draw_pixel(dev, c_x - x, c_y + y, color);
-    dev->draw_pixel(dev, c_x + x, c_y - y, color);
-    dev->draw_pixel(dev, c_x - x, c_y - y, color);
-    dev->draw_pixel(dev, c_x + y, c_y + x, color);
-    dev->draw_pixel(dev, c_x - y, c_y + x, color);
-    dev->draw_pixel(dev, c_x + y, c_y - x, color);
-    dev->draw_pixel(dev, c_x - y, c_y - x, color);
+    dev->draw_pixel(dev, c_x + x, c_y + y, color);  // 4 (segment 2)
+    dev->draw_pixel(dev, c_x - x, c_y + y, color);  // 5 (segment 3)
+    dev->draw_pixel(dev, c_x + x, c_y - y, color);  // 1 (segment 1)
+    dev->draw_pixel(dev, c_x - x, c_y - y, color);  // 8 (segment 4)
+    dev->draw_pixel(dev, c_x + y, c_y + x, color);  // 3 (segment 2)
+    dev->draw_pixel(dev, c_x - y, c_y + x, color);  // 6 (segment 3)
+    dev->draw_pixel(dev, c_x + y, c_y - x, color);  // 2 (segment 1)
+    dev->draw_pixel(dev, c_x - y, c_y - x, color);  // 7 (segment 4)
   }
 }
 
@@ -198,7 +279,7 @@ void gfx_draw_unclosed_circle(const spi_display_t* dev, const _u16 c_x,
   array_fill_u16(tile_colors, color, TILE_COLORS_COUNT);
   static _u16 x_l, y_l = 0;
 
-  for (_u16 angle = start_angle; angle < end_angle; angle++) {
+  for (_u16 angle = start_angle; angle <= end_angle; angle++) {
     calculate_x_y_on_circle(c_x, c_y, angle, radius, &x_l, &y_l);
     // draw small tile, pixel isn't enough to fill it without artefacts
     dev->draw_pixels(dev, x_l, y_l, x_l + 2, y_l + 2, tile_colors, 9);
@@ -206,8 +287,7 @@ void gfx_draw_unclosed_circle(const spi_display_t* dev, const _u16 c_x,
 }
 
 void gfx_draw_gauge(const spi_display_t* dev, const _u16 c_x, const _u16 c_y,
-                    const _u16 radius, const _u16 start_angle,
-                    const _u16 end_angle, const _u16 color) {
+                    const _u16 radius, const _u16 color) {
   gfx_fill_circle(dev, c_x, c_y, radius, color);
   // make "hole" part
   gfx_fill_circle(dev, c_x, c_y, radius - GAUGE_LINE_WIDTH, COLOR_BLACK);
@@ -231,7 +311,7 @@ _u8 gfx_draw_char(const spi_display_t* dev, symbol_data_t* symbol,
     return 0;
   }
 
-  if (symbol == NULL) {
+  if (symbol == NULL || symbol->data == NULL || symbol->ascii_code == 0) {
     return font_get_width(font);
   }
 

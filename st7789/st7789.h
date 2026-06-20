@@ -37,19 +37,21 @@ static _u16 _x2;
 static _u16 _y1;
 static _u16 _y2;
 
-void display_select_region(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
-                           _u16 b);
-void display_draw_pixel(const spi_display_t* dev, _u16 x, _u16 y, _u16 color);
+static void display_select_region(const spi_display_t* dev, _u16 l, _u16 t,
+                                  _u16 r, _u16 b);
+static void display_draw_pixel(const spi_display_t* dev, _u16 x, _u16 y,
+                               _u16 color);
 
-void display_draw_pixels(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
-                         _u16 b, const _u16* colors, size_t size);
-void display_set_on_off(spi_display_t* dev, const bool on);
-void display_sleep(spi_display_t* dev);
-void display_wakeup(spi_display_t* dev);
-bool display_set_inversion(spi_display_t* dev, const bool inversion);
-bool display_set_color_mode(spi_display_t* dev, const color_mode_t mode);
+static void display_draw_pixels(const spi_display_t* dev, _u16 l, _u16 t,
+                                _u16 r, _u16 b, const _u16* colors,
+                                size_t size);
+static void display_set_on_off(spi_display_t* dev, const bool on);
+static void display_sleep(spi_display_t* dev);
+static void display_wakeup(spi_display_t* dev);
+static bool display_set_inversion(spi_display_t* dev, const bool inversion);
+static bool display_set_color_mode(spi_display_t* dev, const color_mode_t mode);
 
-void display_init(spi_display_t* dev) {
+static void display_init(spi_display_t* dev) {
   dev->transmit_command(dev->spi_handle, dev->dc, SWRESET);
   vTaskDelay(_150);
 
