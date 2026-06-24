@@ -130,10 +130,6 @@ void display_draw_pixel(const spi_display_t* dev, _u16 x, _u16 y, _u16 color) {
 // TODO: make colors argument as _u8*
 void display_draw_pixels(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
                          _u16 b, const _u16* colors, size_t size) {
-  if (size >= BUFFER_SIZE / 2) {
-    return;
-  }
-
   if (l >= dev->width) return;
   if (t >= dev->height) return;
 
@@ -154,9 +150,11 @@ void display_draw_pixels(const spi_display_t* dev, _u16 l, _u16 t, _u16 r,
 
   _u16 len = _y2 - _y1;
 
-  buffer_set_u16_array(buffer, colors, size);
+  _u16 offset = 0;
   for (_u16 x = _x1; x < _x2; x++) {
+    buffer_set_u16_array(buffer, colors + offset, len);
     dev->transmit_data(dev->spi_handle, dev->dc, buffer, len * 2);
+    offset += len;
   }
 }
 
