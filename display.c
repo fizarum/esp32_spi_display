@@ -118,7 +118,7 @@ static IRAM_ATTR bool transmit(const spi_device_handle_t spi_handle,
 
   assert(result == ESP_OK);
 
-  return true;
+  return result == ESP_OK;
 }
 
 static bool lighten(const _i8 bl, const _u8 percents) {
